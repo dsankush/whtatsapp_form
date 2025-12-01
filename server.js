@@ -1,13 +1,24 @@
+// server.js (updated)
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
+
+// optional: root serves the contact form
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "contact.html"));
+});
 
 app.post("/contact", async (req, res) => {
   const { name, phone, email, org, message } = req.body;
@@ -36,9 +47,7 @@ app.post("/contact", async (req, res) => {
             },
             {
               type: "body",
-              parameters: [
-                { type: "text", text: name }
-              ]
+              parameters: [{ type: "text", text: name }]
             }
           ]
         }
@@ -51,12 +60,13 @@ app.post("/contact", async (req, res) => {
       }
     );
 
-    res.json({ status: "success", message: "WhatsApp sent successfully!" });
-
+    res.json({ status: "success", message: "WhatsApp sent successfully!", meta: response.data });
   } catch (err) {
     console.error("WhatsApp Error:", err.response?.data || err);
     res.status(500).json({ error: "Failed to send message" });
   }
 });
 
-app.listen(3000, () => console.log("Server running at http://localhost:3000"));
+// Bind to host-provided port (required by Render, Railway, Heroku, etc.)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
